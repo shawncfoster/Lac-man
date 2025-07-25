@@ -36,7 +36,7 @@ const initialBoard = [["x","x","x","x","x","x","x","x","x","x","x","x","x","x","
 ["x","P","o","o","o","o","o","o","o","o","o","o","o","o","o","o","o","o","o","o","P","x"],
 ["x","x","x","x","x","x","x","x","x","x","x","x","x","x","x","x","x","x","x","x","x","x"]]
 
-
+//code snippet 1
 nrow = initialBoard.length;
 ncol = initialBoard[0].length;
 
@@ -45,32 +45,25 @@ const ctx = canvas.getContext("2d");
 
 const squareWidth = 100;
 const squareHeight = 50;
+canvas.width = squareWidth * ncol;
+canvas.height = squareHeight * nrow;
 
-const width = (canvas.width = squareWidth * ncol);
-const height = (canvas.height = squareHeight * nrow);
-
+//code snippet two
 class gridSquare{
     constructor(x, y){
         this.x = x;
         this.y = y;
-        //this.squareKind = squareKind;
     }
-    drawWall(){
-        ctx.fillStyle = "blue";
-        ctx.fillRect(this.x, this.y,  squareWidth, squareHeight);
-    }
-    drawPlaySpace(){
-        ctx.fillStyle = "black";
+    drawPlaySpace(color){
+        ctx.fillStyle = color;
         ctx.fillRect(this.x, this.y, squareWidth, squareHeight);
     }
-
     drawPellet(size){
         ctx.beginPath();
         ctx.fillStyle = "white";
         ctx.arc(this.x + (squareWidth / 2), this.y + (squareHeight / 2), size, 0, 2 * Math.PI);
         ctx.fill();
     }
-    //"test": 2;
 }
 
 class gameBoard{
@@ -78,22 +71,7 @@ class gameBoard{
         this.board = JSON.parse(JSON.stringify(board));
         this.grid = [];
     }
-    
-    initializeGrid(){
-        let yVal = 1;
-        let xVal = 1;
-        for(const row of this.board){
-            xVal = 1;
-            let rowGrid = [];
-            for(const cell of row){
-                rowGrid.push(new gridSquare(xVal, yVal));
-                xVal += squareWidth;
-            }
-            this.grid.push(rowGrid);
-            yVal += squareHeight;
-        }
 
-    }
     // it might would be better "seperation of concerns" to have the "check win" and "fill screen"
     //tasks as separate functions. But then I'd have to loop through the whole screen twice per frame
     fillScreen(){
@@ -102,13 +80,15 @@ class gameBoard{
         let winFlag = true;
         for(const row of this.board){
             xPoint = 1;
+            let rowGrid = []
             for(const cell of row){
-                let square = new gridSquare(xPoint, yPoint);// probably a way to avoid repeating this... make grid and board into a single object?
+                let square = new gridSquare(xPoint, yPoint);
+                rowGrid.push(square)
                 if(cell == "x"){
-                    square.drawWall();
+                    square.drawPlaySpace("blue");
                 }
                 else{
-                    square.drawPlaySpace();
+                    square.drawPlaySpace("black");
                     if(cell == "P"){
                         square.drawPellet(20);
                         winFlag = false;
@@ -120,44 +100,46 @@ class gameBoard{
                 }
                 xPoint += squareWidth;
         }
+        this.grid.push(rowGrid)
         yPoint +=squareHeight;
         }
         if(winFlag == true){
             this.board = JSON.parse(JSON.stringify(initialBoard));
         }
         }
-    check(pacs, ghosts, home = {x: 13, y: 10}){
-            switch (this.board[pacs.yCord][pacs.xCord]){
-                case "o":
-                   this.board[pacs.yCord][pacs.xCord] = "e";
-                   this.grid[pacs.yCord][pacs.xCord].drawPlaySpace(); 
-                   break;
-                case "P":
-                    this.board[pacs.yCord][pacs.xCord] = "e";
-                    ghosts.forEach((x)=>x.flee());
-                    break;
+        
+    check(lacs, ghosts, home = {x: 13, y: 10}){
+        switch (this.board[lacs.yCord][lacs.xCord]){
+            case "o":
+                this.board[lacs.yCord][lacs.xCord] = "e";
+                this.grid[lacs.yCord][lacs.xCord].drawPlaySpace("black"); 
+                break;
+            case "P":
+                this.board[lacs.yCord][lacs.xCord] = "e";
+                ghosts.forEach((x)=>x.flee());
+                break;
+        }
+        //every frame dawg
+        //wait a minute. This passes the old lac by REFERENCE. I just realized how insane that is
+        //OOP is whack
+        for (const ghost of ghosts){
+            if(lacs.yCord === ghost.yCord && lacs.xCord === ghost.xCord){
+                if (ghost.color === "#66ff00"){
+                    ghost.xCord = home.x;
+                    ghost.yCord = home.y;
+            }else if (lacs.lives > 0){
+                lacs.yCord = 1;
+                lacs.xCord = 1;
+                lacs.lives -= 1;
+            } else {
+                lacs.yCord = 1;
+                lacs.xCord = 1;
+                this.board = JSON.parse(JSON.stringify(initialBoard))
+                lacs.lives = 3;
             }
-            //every frame dawg
-            //wait a minute. This passes the old pac by VALUE. I just realized how insane that is
-            //OOP is whack
-            for (const ghost of ghosts){
-                if(pacs.yCord === ghost.yCord && pacs.xCord === ghost.xCord){
-                    if (ghost.color === "#66ff00"){
-                        ghost.xCord = home.x;
-                        ghost.yCord = home.y;
-                }else if (pacs.lives > 0){
-                    pacs.yCord = 1;
-                    pacs.xCord = 1;
-                    pacs.lives -= 1;
-                } else {
-                    pacs.yCord = 1;
-                    pacs.xCord = 1;
-                    this.board = JSON.parse(JSON.stringify(initialBoard))
-                    pacs.lives = 3;
-                }
-                }
             }
         }
+    }
 }
 
 class sprite{
@@ -182,20 +164,18 @@ class sprite{
             }
         }
     }
-    
+    //do repeat myself on "draw" here
     draw(size){
         ctx.beginPath();
         ctx.fillStyle = this.color;
-
         ctx.arc(this.boardGrid.grid[this.yCord][this.xCord].x + (squareWidth/2),
         this.boardGrid.grid[this.yCord][this.xCord].y +
         (squareHeight/2), size, 0, 2 * Math.PI);
-        
         ctx.fill();
     }
     }
 
-class pacMan extends sprite {
+class lacMan extends sprite {
     constructor(xCord, yCord, size, color, boardGrid, lives = 3){
         super(xCord, yCord, size, color, boardGrid);
         this.lives = lives;
@@ -302,10 +282,8 @@ class Ghost extends sprite{
         }
     }
 
-
     updatePosition(){
         this.clock += 400;
-
         if(this.clock >= 6000){
             this.dir = this.predictMove();
             let nextSquare = this.turn(this.dir);
@@ -322,19 +300,16 @@ class Ghost extends sprite{
         }, 10000);
     }
 }
-
-//lump together so I stop mutating state for global variables/objects that have nothing to do with each other
-
+//begin set up
 const screen = new gameBoard(initialBoard);
-const pac = new pacMan(1, 1, 25, "yellow", screen);
+const lac = new lacMan(1, 1, 25, "yellow", screen);
 const inky = new Ghost(15,13, 25, "cyan", screen, 0, "right");
 const pinky = new Ghost(6,13, 25, "magenta", screen, 0, "left");
 const blinky = new Ghost(7,18, 25, "red", screen, 0, "down");
 const clyde = new Ghost(14,18, 25, "orange", screen, 0, "down");
 
 screen.fillScreen();
-screen.initializeGrid();
-pac.draw(pac.size);
+lac.draw(lac.size);
 
 const ghosts = [inky, pinky, blinky, clyde];
 ghosts.forEach((x) => {x.draw(x.size)})
@@ -344,11 +319,11 @@ let isPlaying = true;
 function loop() {
 if(isPlaying){
         screen.fillScreen();
-        screen.check(pac, ghosts);
-        pac.draw(pac.size);
+        screen.check(lac, ghosts);
+        lac.draw(lac.size);
         
         for (const ghost of ghosts){
-            ghost.updatePosition(screen.board)
+            ghost.updatePosition();
             ghost.draw(ghost.size)
         }
         requestAnimationFrame(loop);
@@ -367,4 +342,3 @@ window.addEventListener('keydown', function (e){
     }
 })
 loop();
-
