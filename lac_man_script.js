@@ -108,7 +108,7 @@ class gameBoard{
         }
         }
         
-    check(lacs, ghosts, home = {x: 13, y: 10}){
+    checkSprites(lacs, ghosts, home = {x: 13, y: 10}){
         switch (this.board[lacs.yCord][lacs.xCord]){
             case "o":
                 this.board[lacs.yCord][lacs.xCord] = "e";
@@ -127,13 +127,11 @@ class gameBoard{
                 if (ghost.color === "#66ff00"){
                     ghost.xCord = home.x;
                     ghost.yCord = home.y;
-            }else if (lacs.lives > 0){
-                lacs.yCord = 1;
-                lacs.xCord = 1;
+            } else if (lacs.lives > 0){
+                lacs.move(1,1)
                 lacs.lives -= 1;
             } else {
-                lacs.yCord = 1;
-                lacs.xCord = 1;
+                lacs.move(1,1)
                 this.board = JSON.parse(JSON.stringify(initialBoard))
                 lacs.lives = 3;
             }
@@ -236,7 +234,7 @@ class Ghost extends sprite{
         if (straight != "x"){
             possibleMoves.push(this.dir);
         }
-
+  
         if(this.dir == "left" || this.dir == "right"){
             if (this.boardGrid.board[this.yCord + this.turn("up").y]
             [this.xCord + this.turn("up").x] != "x"){
@@ -304,14 +302,13 @@ class Ghost extends sprite{
 const screen = new gameBoard(initialBoard);
 const lac = new lacMan(1, 1, 25, "yellow", screen);
 const inky = new Ghost(15,13, 25, "cyan", screen, 0, "right");
-const pinky = new Ghost(6,13, 25, "magenta", screen, 0, "left");
+const pinky = new Ghost(6,13, 25, "pink", screen, 0, "left");
 const blinky = new Ghost(7,18, 25, "red", screen, 0, "down");
 const clyde = new Ghost(14,18, 25, "orange", screen, 0, "down");
+const ghosts = [inky, pinky, blinky, clyde];
 
 screen.fillScreen();
 lac.draw(lac.size);
-
-const ghosts = [inky, pinky, blinky, clyde];
 ghosts.forEach((x) => {x.draw(x.size)})
 
 let isPlaying = true;
@@ -319,7 +316,7 @@ let isPlaying = true;
 function loop() {
 if(isPlaying){
         screen.fillScreen();
-        screen.check(lac, ghosts);
+        screen.checkSprites(lac, ghosts);
         lac.draw(lac.size);
         
         for (const ghost of ghosts){
